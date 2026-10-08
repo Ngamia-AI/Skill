@@ -26,6 +26,7 @@ Use the task's actual input and output to choose a route:
 
 - Text generation or tool calls: `POST /v1/chat/completions`.
 - Embeddings: `POST /v1/embeddings`.
+- Image generation: `POST /v1/images/generations`.
 - Transcription and speech generation: `POST /v1/audio/transcriptions` and `POST /v1/audio/speech`.
 - Combined Kiswahili speech workflow: `/v1/bonga` (or documented aliases and voice response routes).
 - Private PDF, image, or video uploads: `POST /v1/documents/analyze`, `POST /v1/vision/analyze`, or `POST /v1/video/analyze`.
@@ -51,7 +52,13 @@ curl https://api.ngamia.cc/v1/chat/completions \
   -d '{"model":"MODEL_FROM_CATALOG","messages":[{"role":"user","content":"Summarize this text."}],"stream":false}'
 ```
 
-For an OpenAI-compatible SDK, configure the Ngamia `/v1` base URL and API key, then call the SDK's normal chat or embeddings method. Keep the model identifier sourced from `GET /v1/models`.
+## OpenAI SDK compatibility
+
+The OpenAI SDK is usable for Ngamia's documented OpenAI-compatible endpoints: chat completions, embeddings, image generation, audio transcription, and text-to-speech. Configure its base URL as `https://api.ngamia.cc/v1` and provide the pre-provisioned Ngamia API key. Select a compatible model from `GET /v1/models` and check its modalities before calling it.
+
+The SDK does not automatically cover every Ngamia capability. Use direct HTTP requests with the API key for Ngamia-specific workflows such as Bonga, private PDF/image/video analysis, async video generation and job polling, or other specialized audio/voice routes. Follow each route's contract for multipart fields, response format, streaming, and limits.
+
+The examples below show chat setup. Use the SDK's corresponding documented method for embeddings, image generation, transcription, or speech only when its request fields and output handling match the Ngamia endpoint contract.
 
 Python example with the OpenAI SDK:
 
