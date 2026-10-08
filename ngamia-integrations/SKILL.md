@@ -11,12 +11,14 @@ This is a capability integration guide. The caller should not need Ngamia accoun
 
 ## Integration sequence
 
-1. **Read the current contract.** Open the API's [developer integration guide](../../api/docs/integrations.md) and the relevant section of [OpenAPI](../../api/docs/openapi.yaml). The API docs are authoritative for paths, fields, limits, response types, and current capability support. Follow the guide's links for detailed audio, image, document, and video examples.
+1. **Read the current contract.** Start with the public [Ngamia developer docs](https://docs.ngamia.cc). For implementation detail, use the API repository's [developer integration guide](https://github.com/Ngamia-AI/ngamia_api/blob/main/docs/integrations.md), [OpenAPI spec](https://github.com/Ngamia-AI/ngamia_api/blob/main/docs/openapi.yaml), and [models and gateway examples](https://github.com/Ngamia-AI/ngamia_api/blob/main/docs/frontend/models-and-gateway.md). These define current paths, fields, limits, response types, and capability support.
 2. **Configure the client.** Use `https://api.ngamia.cc` in production or the developer's supplied base URL. Keep the API key in server-side configuration. For OpenAI-compatible SDKs, use `https://api.ngamia.cc/v1` as `base_url` and the Ngamia key as `api_key`.
 3. **Discover models at runtime.** Call `GET /v1/models` with the API key. Select the `model` identifier whose `input_modalities`, `output_modalities`, and supported parameters match the feature. Use that `model` value verbatim in requests. Avoid hardcoded model lists because availability and pricing can change.
 4. **Call the capability.** Use the endpoint and wire format from the integration guide. Chat, embeddings, and several media endpoints use OpenAI-compatible payloads; analysis helpers and asynchronous video jobs use the documented Ngamia envelope. Check the endpoint's content type and response shape before parsing.
 5. **Handle operations safely.** Surface authentication, insufficient-credit, validation, rate-limit, and upstream errors distinctly. For supported non-streaming billable POSTs, send a stable `Idempotency-Key` for retries of the same logical request. Use a new key for a new operation. Do not retry a partially consumed stream as if it were a fresh request.
 6. **Check the finished integration.** Confirm that the request uses the selected catalog model, the right modality and content type, handles the documented response format, and does not expose or log credentials or private media.
+
+When working in a developer's codebase, do the integration work end to end: inspect the existing app and its HTTP/SDK conventions, implement the smallest complete path, connect configuration through the project's secret mechanism, handle loading/errors/output in the caller, and document any setup the developer must perform. Don't stop after giving a sample request if the task asks for a working integration. If the user only wants guidance, provide runnable code and identify exactly where the key and model identifier come from.
 
 ## Capability routing
 
@@ -51,6 +53,43 @@ curl https://api.ngamia.cc/v1/chat/completions \
 
 For an OpenAI-compatible SDK, configure the Ngamia `/v1` base URL and API key, then call the SDK's normal chat or embeddings method. Keep the model identifier sourced from `GET /v1/models`.
 
+Python example with the OpenAI SDK:
+
+```python
+import os
+from openai import OpenAI
+
+client = OpenAI(
+    api_key=os.environ["NGAMIA_API_KEY"],
+    base_url="https://api.ngamia.cc/v1",
+)
+
+response = client.chat.completions.create(
+    model="MODEL_FROM_CATALOG",
+    messages=[{"role": "user", "content": "Say hello in Swahili."}],
+)
+print(response.choices[0].message.content)
+```
+
+JavaScript example with the OpenAI SDK:
+
+```javascript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: process.env.NGAMIA_API_KEY,
+  baseURL: "https://api.ngamia.cc/v1",
+});
+
+const response = await client.chat.completions.create({
+  model: "MODEL_FROM_CATALOG",
+  messages: [{ role: "user", content: "Say hello in Swahili." }],
+});
+console.log(response.choices[0].message.content);
+```
+
+These examples show the standard SDK setup. Replace `MODEL_FROM_CATALOG` with a model returned by `GET /v1/models`; for other capabilities, inspect the endpoint contract and use that endpoint's SDK method or HTTP request format.
+
 ## Response and reliability rules
 
 - OpenAI-compatible endpoints return OpenAI-shaped JSON, SSE, multipart-related outputs, or raw media bytes as documented. They do not all use Ngamia's standard JSON envelope.
@@ -61,4 +100,4 @@ For an OpenAI-compatible SDK, configure the Ngamia `/v1` base URL and API key, t
 
 ## Source of truth
 
-The API's [developer integration guide](../../api/docs/integrations.md) is the short route map. The [OpenAPI spec](../../api/docs/openapi.yaml) defines request and response contracts. Detailed existing examples live in [models and gateway](../../api/docs/frontend/models-and-gateway.md). When those disagree, inspect the implementation and update API documentation before copying a stale example into a client.
+The public entry point is [docs.ngamia.cc](https://docs.ngamia.cc). The API repository's [developer integration guide](https://github.com/Ngamia-AI/ngamia_api/blob/main/docs/integrations.md) is the short route map; its [OpenAPI spec](https://github.com/Ngamia-AI/ngamia_api/blob/main/docs/openapi.yaml) defines request and response contracts, and [models and gateway](https://github.com/Ngamia-AI/ngamia_api/blob/main/docs/frontend/models-and-gateway.md) has detailed examples. When those disagree, inspect the implementation and update API documentation before copying a stale example into a client.
